@@ -5,7 +5,19 @@ const session = require('express-session');
 const mongoose = require('mongoose');
 const db = mongoose.connection;
 const cors = require('cors');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 app.use(cors());
+
+app.use(
+    '/newsapi',
+    createProxyMiddleware({
+      target: 'https://newsapi.org',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/newsapi': '',
+      },
+    })
+  );
 
 const morgan = require('morgan');
 app.use(morgan('dev'));
