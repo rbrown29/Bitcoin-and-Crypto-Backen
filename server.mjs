@@ -1,30 +1,33 @@
-const express = require('express');
-const app = express();
-const methodOverride = require('method-override');
-const session = require('express-session');
-const mongoose = require('mongoose');
+
+import express from 'express';
+import methodOverride from 'method-override';
+import session from 'express-session';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import morgan from 'morgan';
+import corsAnywhere from 'cors-anywhere';
+import dotenv from 'dotenv';
+import fetch from 'node-fetch';
 const db = mongoose.connection;
-const cors = require('cors');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const app = express();
+
 app.use(cors());
 
-app.use(
-    '/newsapi',
-    createProxyMiddleware({
-      target: 'https://newsapi.org',
-      changeOrigin: true,
-      pathRewrite: {
-        '^/newsapi': '',
-      },
-    })
-  );
+app.get('/api/news', async (req, res) => {
+    try {
+        const response = await fetch(`https://newsapi.org/v2/everything?q=bitcoin&apiKey=${process.env.NEWS_API_KEY}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching news data' });
+    }
+});
 
-const morgan = require('morgan');
 app.use(morgan('dev'));
 
-const corsAnywhere = require('cors-anywhere');
 const corsProxy = corsAnywhere.createServer({
-    originWhitelist: ['http://localhost:3000', 'https://localhost:3004'], 
+    originWhitelist: ['http://localhost:3000', 'https://localhost:3004'],
     requireHeader: ['origin', 'x-requested-with'],
     removeHeaders: ['cookie', 'cookie2']
 });
@@ -34,10 +37,10 @@ app.use('/proxy', (req, res) => {
     corsProxy.emit('request', req, res);
 });
 
-require('dotenv').config();
+dotenv.config();
 const PORT = process.env.PORT;
 const MONGODB_URI = process.env.MONGODB_URI;
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 db.on('error', (err) => console.log(err.message + ' is Mongod not running?'));
 db.on('connected', () => console.log('mongo connected: ', MONGODB_URI));
@@ -53,7 +56,7 @@ app.use(session({
     saveUninitialized: false
 }));
 
-const commentsController = require('./controllers/comments.js');
+import commentsController from './controllers/comments.js';
 app.use('/comments', commentsController);
 
 app.use((error, req, res, next) => {
